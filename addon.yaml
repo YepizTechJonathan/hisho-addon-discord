@@ -1,0 +1,29 @@
+# Discord integration: one entry per Discord server (guild) that your own Hisho bot is in. Card: channels and
+# members, and a warning when the bot lacks a permission it needs. Page: the server's channels by category,
+# its roles and members, with buttons to post in a channel, start a thread and make a channel (after you
+# confirm). It provides chat_messages, so other add-ons (Vikunja task changes, CI, deploys) post to a
+# channel without naming Discord. Nothing here deletes, kicks, bans or changes roles, and posts never ping.
+# Make the bot in the Discord Developer Portal (private), store its token as a secret, invite it, then:
+#   hisho addon entry discord main token=DISCORD_BOT_TOKEN server=123456789012345678
+name: discord
+kind: integration
+title: Discord
+description: Your Discord servers through your own bot (channels, roles, members), with posting, threads and new channels.
+version: 0.1.3
+you_need:
+  - "A Discord server you manage"
+  - "Your own private Discord bot, added to that server (steps under Settings)"
+provider: provider.py
+provides: [chat_messages]
+entry_label: Discord server
+secret_rotate: Discord Developer Portal > your application > Bot > Reset Token
+entry_schema:
+  token: secret              # the bot token's secret NAME
+  server: str                # the server's id (Discord: Developer Mode on, right-click the server > Copy Server ID)
+  allow_writes: "bool?"      # false = read only: no buttons, and other add-ons can't post through it (default true)
+  note: "str?"
+entry_form:
+  token: "Bot token (its secret's name)"
+  server: "Server ID"
+  allow_writes: "Buttons and other add-ons may post (true/false)"
+  note: "Note"
