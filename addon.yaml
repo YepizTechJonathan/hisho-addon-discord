@@ -9,7 +9,7 @@ name: discord
 kind: integration
 title: Discord
 description: Your Discord servers through your own bot (channels, roles, members), with posting, threads and new channels.
-version: 0.1.3
+version: 0.1.4
 you_need:
   - "A Discord server you manage"
   - "Your own private Discord bot, added to that server (steps under Settings)"
@@ -27,3 +27,20 @@ entry_form:
   server: "Server ID"
   allow_writes: "Buttons and other add-ons may post (true/false)"
   note: "Note"
+
+help:
+  token:
+    label: Bot token (secret name)
+    say: "Your own private bot's token, saved as a Hisho secret; type the secret's name here, never the token. Make the bot in Discord's Developer Portal (New Application > Bot > Reset Token) and invite it with only the permissions in this add-on's README, not Administrator."
+    get: "https://discord.com/developers/applications"
+    get_label: Open Discord's Developer Portal
+  server:
+    label: Server ID
+    say: "Your Discord server's number. In Discord, turn on Developer Mode, then right-click the server and choose Copy Server ID."
+    get: "https://support.discord.com/hc/en-us/articles/206346498"
+    get_label: How to find the Server ID
+  allow_writes:
+    label: Allow posting
+    say: "On: the page's buttons and other add-ons may post, start threads and make channels. Off: Hisho only reads."
+  note:
+    say: "Anything that helps you remember this server."
