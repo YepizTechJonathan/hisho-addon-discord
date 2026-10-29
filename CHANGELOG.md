@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Paste the bot token and press Test: Hisho finds the server the bot is in and fills in its Server ID (Server ID is
+  now optional). In none, Test gives the one-click invite link with the bot's application id and exactly the
+  permissions the add-on needs (309774601232); in several, it lists them. A missing permission or a server the
+  bot isn't in says where to fix it, with the same link.
+- The token can be pasted (kept as a local secret) instead of saved as a secret first; a secret's name still works.
+
 ## 0.1.4
 
 - Every field on its setup form says in plain words what it is, and links to where to get it (addon.yaml `help:`, shown by Hisho's dashboard).

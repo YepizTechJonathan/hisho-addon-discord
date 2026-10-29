@@ -3,40 +3,41 @@
 # its roles and members, with buttons to post in a channel, start a thread and make a channel (after you
 # confirm). It provides chat_messages, so other add-ons (Vikunja task changes, CI, deploys) post to a
 # channel without naming Discord. Nothing here deletes, kicks, bans or changes roles, and posts never ping.
-# Make the bot in the Discord Developer Portal (private), store its token as a secret, invite it, then:
+# Make the bot in the Discord Developer Portal (private) and paste its token: Test finds the server it is in and
+# fills it in, or gives the one-click invite link (exactly the permissions below) when it is in none. Or:
 #   hisho addon entry discord main token=DISCORD_BOT_TOKEN server=123456789012345678
 name: discord
 kind: integration
 title: Discord
 description: Your Discord servers through your own bot (channels, roles, members), with posting, threads and new channels.
-version: 0.1.4
+version: 0.2.0
 you_need:
   - "A Discord server you manage"
-  - "Your own private Discord bot, added to that server (steps under Settings)"
+  - "Your own private Discord bot (the form links to Discord's Developer Portal; Test gives the link that adds it to your server)"
 provider: provider.py
 provides: [chat_messages]
 entry_label: Discord server
 secret_rotate: Discord Developer Portal > your application > Bot > Reset Token
 entry_schema:
-  token: secret              # the bot token's secret NAME
-  server: str                # the server's id (Discord: Developer Mode on, right-click the server > Copy Server ID)
+  token: password            # the bot token (pasted: kept as a local secret), or a saved secret's NAME
+  server: "str?"             # the server's id; empty = Test fills in the one server the bot is in
   allow_writes: "bool?"      # false = read only: no buttons, and other add-ons can't post through it (default true)
   note: "str?"
 entry_form:
-  token: "Bot token (its secret's name)"
-  server: "Server ID"
+  token: "Bot token"
+  server: "Server ID (empty: Hisho finds it)"
   allow_writes: "Buttons and other add-ons may post (true/false)"
   note: "Note"
 
 help:
   token:
-    label: Bot token (secret name)
-    say: "Your own private bot's token, saved as a Hisho secret; type the secret's name here, never the token. Make the bot in Discord's Developer Portal (New Application > Bot > Reset Token) and invite it with only the permissions in this add-on's README, not Administrator."
+    label: Bot token
+    say: "Your own private bot's token. Press the link, then: New Application, give it a name (e.g. Hisho) > Create. On the left choose Bot, press Reset Token, then Copy, and paste it here. (While there, turn Public Bot off so only you can add it; if Discord won't save that, first set Installation > Install Link to None.) Press Test: Hisho finds your server, or gives you a one-click link that adds the bot to it with only the permissions it needs."
     get: "https://discord.com/developers/applications"
     get_label: Open Discord's Developer Portal
   server:
     label: Server ID
-    say: "Your Discord server's number. In Discord, turn on Developer Mode, then right-click the server and choose Copy Server ID."
+    say: "Leave it empty: Test fills it in when the bot is in one server, and gives you the invite link when it is in none. Only if your bot is in several servers, type the one you mean (Test lists them; or in Discord turn on Developer Mode, right-click the server, Copy Server ID)."
     get: "https://support.discord.com/hc/en-us/articles/206346498"
     get_label: How to find the Server ID
   allow_writes:

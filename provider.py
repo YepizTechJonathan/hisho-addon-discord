@@ -32,7 +32,9 @@ def _problem(name: str, exc: Exception) -> dict[str, Any]:
 
 
 def look(b: Any, entry: dict[str, Any]) -> dict[str, Any]:
-    gid = str(entry["server"])
+    gid = str(entry.get("server") or "")
+    if not gid:
+        raise dc.DiscordError("no server chosen yet: press Test on its form", "access")
     g = b.guild(gid)
     me = b.me()
     member = b.member(gid, me["id"])
@@ -137,15 +139,64 @@ def details(entries: dict[str, dict[str, Any]], ctx: Any) -> list[dict[str, Any]
     return sections
 
 
-def test(entry: dict[str, Any], ctx: Any) -> dict[str, Any]:
-    """The page's Test button: reads only."""
+def _app_id(b: Any, me: dict[str, Any]) -> str:
+    """The bot's application id (the invite link's client_id); the bot's own user id if Discord won't say."""
     try:
-        s = look(bot(entry, ctx), entry)
+        return str((b.application() or {}).get("id") or me["id"])
+    except dc.DiscordError:
+        return str(me["id"])
+
+
+def test(entry: dict[str, Any], ctx: Any) -> dict[str, Any]:
+    """The page's Test (and Add) button: reads only. With no server typed, it finds the one the bot is in and
+    fills it in; in none, it gives the ready invite link (one click: pick the server, Authorize)."""
+    b = bot(entry, ctx)
+    try:
+        me = b.me()
     except dc.DiscordError as exc:
-        return {"ok": False, "error": str(exc)}
+        out = {"ok": False, "error": str(exc)}
+        if exc.kind == "token":
+            out["explain"] = ("Discord refused that bot token. In the Developer Portal open your application > Bot > "
+                              "Reset Token, copy the new token and paste it here (a token works only until it's reset).")
+        return out
+    fill = {}
+    if not str(entry.get("server") or "").strip():
+        try:
+            servers = b.guilds()
+        except dc.DiscordError as exc:
+            return {"ok": False, "error": str(exc)}
+        if not servers:
+            link = dc.invite_link(_app_id(b, me))
+            return {"ok": False, "error": f"the bot {me.get('username')} is in no server yet",
+                    "explain": f"Your bot {me.get('username')} isn't in a server yet. Open this link, choose your "
+                               f"server and press Authorize, then press Test again: {link}",
+                    "invite": link}
+        if len(servers) > 1:
+            names = ", ".join(f"{g.get('name')} = {g.get('id')}" for g in servers[:10])
+            return {"ok": False, "error": f"the bot is in {len(servers)} servers; type the Server ID of the one to add",
+                    "explain": f"Your bot is in {len(servers)} servers. Type the Server ID of the one this entry is "
+                               f"for ({names}), then press Test again. Add another entry for each other server."}
+        fill = {"server": str(servers[0]["id"])}
+        entry = {**entry, **fill}
+    try:
+        s = look(b, entry)
+    except dc.DiscordError as exc:
+        out = {"ok": False, "error": str(exc)}
+        if exc.kind == "access":
+            link = dc.invite_link(_app_id(b, me), str(entry.get("server") or ""))
+            out.update(explain=f"Your bot {me.get('username')} isn't in that server (or can't see it). Open this "
+                               f"link, press Authorize, then press Test again: {link}", invite=link)
+        return out
     msg = f"Connected: bot {s['me']['username']} in {s['guild']['name']}"
-    return {"ok": not s["missing"], **({"message": msg} if not s["missing"] else
-                                       {"error": f"{msg}, but it lacks {', '.join(s['missing'])}"})}
+    if s["missing"]:
+        return {"ok": False, "error": f"{msg}, but it lacks {', '.join(s['missing'])}",
+                "explain": f"The bot is in {s['guild']['name']} but lacks {', '.join(s['missing'])}. In Discord: "
+                           f"Server Settings > Roles > {s['me']['username']}, turn those on (or invite it again "
+                           f"with this link, which asks for exactly them: "
+                           f"{dc.invite_link(_app_id(b, me), str(entry['server']))}), then press Test again."}
+    if fill:
+        msg += f" (found it: Server ID {fill['server']})"
+    return {"ok": True, "message": msg, **({"fill": fill} if fill else {})}
 
 
 def describe_secret(entry: dict[str, Any], ctx: Any) -> str:

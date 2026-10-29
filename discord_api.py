@@ -22,6 +22,15 @@ NEEDED = {10: "View Channels", 11: "Send Messages", 4: "Manage Channels", 29: "M
           35: "Create Public Threads", 38: "Send Messages in Threads", 14: "Embed Links"}
 RISKY = {3: "Administrator", 1: "Kick Members", 2: "Ban Members", 28: "Manage Roles", 5: "Manage Server"}
 NO_MENTIONS = {"parse": []}
+#: the permission integer the invite link asks for: exactly NEEDED, nothing more (309774601232)
+INVITE_PERMISSIONS = sum(1 << b for b in NEEDED)
+
+
+def invite_link(app_id: str, server: str = "") -> str:
+    """The one-click "add my bot to my server" link, asking for exactly what the add-on needs."""
+    link = (f"https://discord.com/oauth2/authorize?client_id={app_id}&scope=bot%20applications.commands"
+            f"&permissions={INVITE_PERMISSIONS}")
+    return link + (f"&guild_id={server}&disable_guild_select=true" if server else "")
 
 
 class DiscordError(RuntimeError):
@@ -86,6 +95,14 @@ class Bot:
     # ── reads ─────────────────────────────────────────────────────────────
     def me(self) -> dict[str, Any]:
         return self.call("GET", "/users/@me")
+
+    def application(self) -> dict[str, Any]:
+        """The bot's own application (its id is the invite link's client_id)."""
+        return self.call("GET", "/oauth2/applications/@me")
+
+    def guilds(self) -> list[dict[str, Any]]:
+        """The servers the bot is in (id and name)."""
+        return self.call("GET", "/users/@me/guilds?limit=200") or []
 
     def guild(self, gid: str) -> dict[str, Any]:
         return self.call("GET", f"/guilds/{gid}?with_counts=true")

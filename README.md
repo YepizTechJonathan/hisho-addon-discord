@@ -23,11 +23,11 @@ Lets Hisho run your Discord servers through **your own private bot**, never thro
 
 - You need:
   - A Discord server you manage
-  - Your own private Discord bot, added to that server (steps under Settings)
+  - Your own private Discord bot (the form links to Discord's Developer Portal; Test gives the link that adds it to your server)
 - Runs on: the Core machine, inside Hisho Core
 - One entry per Discord server, each with:
-  - `token` (secret name, required)
-  - `server` (str, required)
+  - `token` (password, kept as a local secret, required)
+  - `server` (str, optional)
   - `allow_writes` (bool, optional)
   - `note` (str, optional)
 - Provides: `chat_messages`
@@ -51,14 +51,18 @@ Its card has one line per server and warns if the bot lost access or a permissio
 ## Settings
 
 1. **Make the bot** at https://discord.com/developers/applications: New Application > Bot. Turn **Public
-   Bot** off (first set Installation > Install Link to *None*, or Discord refuses to save). Reset Token,
-   copy it, and store it: `hisho secret put DISCORD_BOT_TOKEN` (any `SYSTEM_WHICH_WHAT` name).
-2. **Invite it** with only what it needs (replace `APP_ID` and `SERVER_ID`):
-   `https://discord.com/oauth2/authorize?client_id=APP_ID&scope=bot+applications.commands&permissions=397821471824&integration_type=0&guild_id=SERVER_ID&disable_guild_select=true`
-   (View Channels, Manage Channels, Manage Webhooks, Send Messages, Send in Threads, Create and Manage
-   Threads, Embed Links, Attach Files, Read History, Add Reactions, Manage Messages, Use Commands. Not
-   Administrator.) Change it later in Server Settings > Roles > your bot.
-3. **Add the server**, on its page or in `~/Hisho/System/Config/Addons/discord.yaml`:
+   Bot** off (first set Installation > Install Link to *None*, or Discord refuses to save). Reset Token and copy it.
+2. **Add it**: Add-ons > Discord > **+ add**, paste the token, leave Server ID empty and press **Test**.
+   - If the bot is in one server, Hisho fills in its Server ID. Press **Add**.
+   - If it is in none, Test gives the ready invite link (the bot's application id filled in, asking for exactly
+     what the add-on needs: `permissions=309774601232` = View Channels, Manage Channels, Manage Webhooks, Send
+     Messages, Send Messages in Threads, Create Public Threads, Embed Links, Read Message History; not
+     Administrator). Open it, choose your server, Authorize, and press Test again.
+   - If it is in several, Test lists them; type the Server ID of the one this entry is for.
+   The pasted token is kept as a local secret on the Core machine (or type the name of a saved secret, e.g.
+   `DISCORD_BOT_TOKEN`). Change its permissions later in Server Settings > Roles > your bot.
+
+Or in `~/Hisho/System/Config/Addons/discord.yaml`:
 
 ```yaml
 entries:

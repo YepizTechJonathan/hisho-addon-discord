@@ -20,6 +20,7 @@ class FakeDiscord:
         self.role_perms = NEEDED
         self.token_ok, self.in_guild, self.members_intent = True, True, False
         self.limited_once = False
+        self.guilds = [{"id": GID, "name": "Team-Server"}]
         self.channels = [
             {"id": "1", "type": 4, "name": "pipeline", "position": 2},
             {"id": "2", "type": 4, "name": "start-here", "position": 0},
@@ -35,10 +36,14 @@ class FakeDiscord:
         if self.limited_once:
             self.limited_once = False
             return 429, {}, {"retry_after": 0.01}
-        if headers["Authorization"] != "Bot value-of-DISCORD_BOT_TOKEN" or not self.token_ok:
+        if headers["Authorization"] not in ("Bot value-of-DISCORD_BOT_TOKEN", "Bot pasted-bot-token") or not self.token_ok:
             return 401, {}, {"message": "401: Unauthorized"}
         if path == "/users/@me":
             return 200, {}, {"id": BOT, "username": "Hisho", "bot": True}
+        if path == "/oauth2/applications/@me":
+            return 200, {}, {"id": "600", "name": "Hisho"}
+        if path == "/users/@me/guilds?limit=200":
+            return 200, {}, self.guilds
         if path.startswith(f"/guilds/{GID}") and not self.in_guild:
             return 403, {}, {"message": "Missing Access"}
         if path == f"/guilds/{GID}?with_counts=true":
@@ -225,3 +230,42 @@ def test_channel_permission_order(mod):
     assert dc.channel_permissions(base, ch, "g", member, "me") == base          # role allow beats @everyone deny;
     assert dc.channel_permissions(base, ch, "g", member, "other") == 1 << 10    # member allow beats role deny
     assert dc.channel_permissions(1 << 3, ch, "g", {"roles": []}, "x") == 1 << 3  # admin: no overwrite applies
+
+
+# ── paste the token, Test finds the rest ──────────────────────────────────
+
+def test_with_no_server_typed_test_finds_the_one_the_bot_is_in_and_fills_it(mod, fake, addon, ctx_for):
+    got = mod.test({"token": "DISCORD_BOT_TOKEN"}, ctx_for(addon))
+    assert got["ok"] and got["fill"] == {"server": GID} and "Team-Server" in got["message"]
+    assert ("GET", "/users/@me/guilds?limit=200") in fake.calls
+
+
+def test_in_no_server_test_gives_the_ready_invite_link_with_exactly_the_needed_permissions(mod, fake, addon, ctx_for):
+    fake.guilds = []
+    got = mod.test({"token": "DISCORD_BOT_TOKEN"}, ctx_for(addon))
+    link = ("https://discord.com/oauth2/authorize?client_id=600&scope=bot%20applications.commands"
+            f"&permissions={NEEDED}")
+    assert not got["ok"] and got["invite"] == link and link in got["explain"]
+    assert NEEDED == 309774601232 == mod.dc.INVITE_PERMISSIONS
+    assert "value-of" not in json.dumps(got)
+
+
+def test_in_several_servers_test_lists_them_and_asks_which(mod, fake, addon, ctx_for):
+    fake.guilds = [{"id": GID, "name": "Team-Server"}, {"id": "901", "name": "Family"}]
+    got = mod.test({"token": "DISCORD_BOT_TOKEN"}, ctx_for(addon))
+    assert not got["ok"] and "Team-Server = 900" in got["explain"] and "Family = 901" in got["explain"]
+
+
+def test_a_server_the_bot_is_not_in_gets_the_invite_link_for_that_server(mod, fake, addon, ctx_for):
+    fake.in_guild = False
+    got = mod.test(ENTRY["team"], ctx_for(addon))
+    assert not got["ok"] and got["invite"].endswith(f"&guild_id={GID}&disable_guild_select=true")
+
+
+def test_add_with_a_pasted_token_saves_the_found_server_and_keeps_the_token_as_a_secret(fake, client):
+    from hisho.addon_testing import AUTH
+    r = client.post("/api/addons/discord/entries/team", headers=AUTH, json={"token": "pasted-bot-token"})
+    assert r.status_code == 200, r.text
+    e = addons.read_config("discord")["entries"]["team"]
+    assert e["server"] == GID and e["token"] == "HISHO_ADDON_DISCORD_TEAM_TOKEN"
+    assert "pasted-bot-token" not in Path(addons.config_path("discord")).read_text()
