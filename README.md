@@ -13,6 +13,9 @@ Lets Hisho run your Discord servers through **your own private bot**, never thro
 - **Buttons** (unless the entry says `allow_writes: false`), each after you confirm: **post** in a channel,
   start a **thread** (`name | first message`), make a **new channel** (`name`, or `name in CATEGORY`).
   From a terminal: `hisho addon do discord main ch-<channel id> post --input "Deploy done"`.
+- **For Claude** (Hisho's MCP tools): `read_channel` reads the newest messages of a channel or thread, e.g.
+  to turn a teammate's requests into tasks. It only reads, and needs the bot's **Message Content** switch
+  (Developer Portal > Bot > Privileged Gateway Intents) or the text comes back empty.
 - **For other add-ons** it provides `chat_messages`: an add-on that wants to tell a channel something (the
   Vikunja add-on's task changes, CI results, deploy notices) calls `post_message(channel, text)` and never
   names Discord, so another chat tool could take its place.

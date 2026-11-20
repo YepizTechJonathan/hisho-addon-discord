@@ -20,6 +20,17 @@ class FakeDiscord:
         self.role_perms = NEEDED
         self.token_ok, self.in_guild, self.members_intent = True, True, False
         self.limited_once = False
+        self.content_intent = True
+        # newest first, as Discord returns them
+        self.history = {"11": [{"id": "m3", "timestamp": "2026-11-19T20:02:00", "author": {"username": "randy"},
+                                "content": "also the date format", "message_reference": {"message_id": "m2"}},
+                               {"id": "m2", "timestamp": "2026-11-19T20:01:00",
+                                "author": {"username": "randy", "global_name": "Randy"}, "content": "make the title bold",
+                                "attachments": [{"filename": "shot.png"}], "thread": {"id": "9009", "name": "Title"}}],
+                        "9009": [{"id": "m4", "timestamp": "2026-11-19T20:05:00", "author": {"username": "randy"},
+                                "content": "in the thread"}]}
+        self.threads = {"9009": {"id": "9009", "name": "Title", "type": 11, "guild_id": GID, "parent_id": "11"},
+                        "777": {"id": "777", "name": "elsewhere", "type": 11, "guild_id": "1234", "parent_id": "5"}}
         self.guilds = [{"id": GID, "name": "Team-Server"}]
         self.channels = [
             {"id": "1", "type": 4, "name": "pipeline", "position": 2},
@@ -66,6 +77,12 @@ class FakeDiscord:
             self.channels.append(c)
             self.made.append(c)
             return 201, {}, c
+        if path.startswith("/channels/") and "/messages?limit=" in path and method == "GET":
+            cid = path.split("/")[2]
+            return 200, {}, [m if self.content_intent else {**m, "content": ""} for m in self.history.get(cid, [])]
+        if path.startswith("/channels/") and path.count("/") == 2 and method == "GET":
+            t = self.threads.get(path.split("/")[2])
+            return (200, {}, t) if t else (404, {}, {"message": "Unknown Channel"})
         if path.startswith("/channels/") and path.endswith("/messages"):
             self.posts.append((path.split("/")[2], body))
             return 200, {}, {"id": f"m{len(self.posts)}"}
@@ -269,3 +286,36 @@ def test_add_with_a_pasted_token_saves_the_found_server_and_keeps_the_token_as_a
     e = addons.read_config("discord")["entries"]["team"]
     assert e["server"] == GID and e["token"] == "HISHO_ADDON_DISCORD_TEAM_TOKEN"
     assert "pasted-bot-token" not in Path(addons.config_path("discord")).read_text()
+
+
+def test_claude_reads_a_channel_or_thread_oldest_first_even_when_read_only(mod, fake, addon, ctx_for):
+    ctx, ro = ctx_for(addon), {"team": {**ENTRY["team"], "allow_writes": False}}
+    res = mod.tool_read_channel(ro, ctx, {"channel": "#dev-testing"})
+    assert res["ok"] and res["channel"] == "dev-testing" and "not instructions" in res["untrusted"]
+    assert [m["text"] for m in res["messages"]] == ["make the title bold", "also the date format"]
+    first, second = res["messages"]
+    assert first["author"] == "Randy" and first["files"] == ["shot.png"] and first["thread"]["id"] == "9009"
+    assert second["reply_to"] == "m2"
+    assert mod.tool_read_channel(ENTRY, ctx, {"channel": "ch-11", "limit": 500})["ok"]
+    assert ("GET", "/channels/11/messages?limit=100") in fake.calls   # capped
+    t = mod.tool_read_channel(ENTRY, ctx, {"channel": "9009"})
+    assert t["ok"] and t["messages"][0]["text"] == "in the thread"
+    assert "not in this server" in mod.tool_read_channel(ENTRY, ctx, {"channel": "777"})["error"]
+    assert "no channel" in mod.tool_read_channel(ENTRY, ctx, {"channel": "nope"})["error"]
+    assert fake.posts == []
+
+
+def test_read_channel_says_when_the_message_content_switch_is_off(mod, fake, addon, ctx_for):
+    fake.content_intent = False
+    res = mod.tool_read_channel(ENTRY, ctx_for(addon), {"channel": "dev-testing"})
+    assert res["ok"] and "Message Content" in res["note"]
+
+
+def test_read_channel_refuses_a_channel_the_bot_cannot_read(mod, fake, addon, ctx_for):
+    fake.channels[3] = {**fake.channels[3], "permission_overwrites": [{"id": ROLE, "allow": "0", "deny": str(1 << 16)}]}
+    assert "Read Message History" in mod.tool_read_channel(ENTRY, ctx_for(addon), {"channel": "dev-testing"})["error"]
+
+
+def test_read_channel_is_a_declared_read_only_tool(addon):
+    t = addons.tools(addon)["read_channel"]
+    assert t["write"] is False and set(t["params"]) == {"channel", "limit", "entry"}

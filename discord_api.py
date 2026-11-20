@@ -117,6 +117,14 @@ class Bot:
         """Needs the bot's Server Members switch (privileged); the caller copes without."""
         return self.call("GET", f"/guilds/{gid}/members?limit=200") or []
 
+    def channel(self, channel_id: str) -> dict[str, Any]:
+        """One channel or thread by id (a thread isn't in the server's channel list)."""
+        return self.call("GET", f"/channels/{channel_id}")
+
+    def messages(self, channel_id: str, limit: int = 30) -> list[dict[str, Any]]:
+        """The newest messages, newest first. Their text is empty unless the bot's Message Content switch is on."""
+        return self.call("GET", f"/channels/{channel_id}/messages?limit={max(1, min(int(limit), 100))}") or []
+
     # ── writes (never a delete) ───────────────────────────────────────────
     def post(self, channel_id: str, text: str) -> dict[str, Any]:
         return self.call("POST", f"/channels/{channel_id}/messages",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Claude can read a channel or thread: the assistant tool `read_channel` (newest messages, oldest first, with author,
+  time, text, file names, replies and threads). Reads only, so it works with `allow_writes: false` too; it checks
+  the bot may open the channel, and a thread must belong to this server. The text needs the bot's Message Content
+  switch (Developer Portal > Bot); with it off, the tool says so instead of returning blank messages.
+
 ## 0.2.0
 
 - Paste the bot token and press Test: Hisho finds the server the bot is in and fills in its Server ID (Server ID is
