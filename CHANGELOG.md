@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Tests use only neutral names, so the release can be pinned in the store.
+
 ## 0.3.0
 
 - Claude can read a channel or thread: the assistant tool `read_channel` (newest messages, oldest first, with author,

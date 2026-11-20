@@ -10,7 +10,7 @@ name: discord
 kind: integration
 title: Discord
 description: Your Discord servers through your own bot (channels, roles, members), with posting, threads, new channels, and reading a channel for Claude.
-version: 0.3.0
+version: 0.3.1
 you_need:
   - "A Discord server you manage"
   - "Your own private Discord bot (the form links to Discord's Developer Portal; Test gives the link that adds it to your server)"

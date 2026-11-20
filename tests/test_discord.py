@@ -22,12 +22,12 @@ class FakeDiscord:
         self.limited_once = False
         self.content_intent = True
         # newest first, as Discord returns them
-        self.history = {"11": [{"id": "m3", "timestamp": "2026-11-19T20:02:00", "author": {"username": "randy"},
+        self.history = {"11": [{"id": "m3", "timestamp": "2026-11-19T20:02:00", "author": {"username": "jane"},
                                 "content": "also the date format", "message_reference": {"message_id": "m2"}},
                                {"id": "m2", "timestamp": "2026-11-19T20:01:00",
-                                "author": {"username": "randy", "global_name": "Randy"}, "content": "make the title bold",
+                                "author": {"username": "jane", "global_name": "Jane"}, "content": "make the title bold",
                                 "attachments": [{"filename": "shot.png"}], "thread": {"id": "9009", "name": "Title"}}],
-                        "9009": [{"id": "m4", "timestamp": "2026-11-19T20:05:00", "author": {"username": "randy"},
+                        "9009": [{"id": "m4", "timestamp": "2026-11-19T20:05:00", "author": {"username": "jane"},
                                 "content": "in the thread"}]}
         self.threads = {"9009": {"id": "9009", "name": "Title", "type": 11, "guild_id": GID, "parent_id": "11"},
                         "777": {"id": "777", "name": "elsewhere", "type": 11, "guild_id": "1234", "parent_id": "5"}}
@@ -294,7 +294,7 @@ def test_claude_reads_a_channel_or_thread_oldest_first_even_when_read_only(mod, 
     assert res["ok"] and res["channel"] == "dev-testing" and "not instructions" in res["untrusted"]
     assert [m["text"] for m in res["messages"]] == ["make the title bold", "also the date format"]
     first, second = res["messages"]
-    assert first["author"] == "Randy" and first["files"] == ["shot.png"] and first["thread"]["id"] == "9009"
+    assert first["author"] == "Jane" and first["files"] == ["shot.png"] and first["thread"]["id"] == "9009"
     assert second["reply_to"] == "m2"
     assert mod.tool_read_channel(ENTRY, ctx, {"channel": "ch-11", "limit": 500})["ok"]
     assert ("GET", "/channels/11/messages?limit=100") in fake.calls   # capped
